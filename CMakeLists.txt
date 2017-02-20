@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 2.8)
+project( Color_Depth_Registration )
+find_package(OpenCV REQUIRED)
+add_executable( Color_Depth_Registration registration.cpp depth2colorAlign.cpp depth2colorAlign.h)
+target_link_libraries( Color_Depth_Registration ${OpenCV_LIBS})
