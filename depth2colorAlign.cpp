@@ -91,7 +91,7 @@ void registration(const cv::Mat &im_color, const cv::Mat &pointclouds,
 		if(v >= 0 && v < im_color.rows && u >= 0 && u < im_color.cols)
 		{
 			// std::cout << u << " " << v << std::endl;
-			int depth = Pc.at<double>(2, i) * 2000.0; // unit mm
+			int depth = Pc.at<double>(2, i) * 1000.0; // unit mm
 			// std::cout << i << " " << Pc.at<double>(3, i) << std::endl;
 			if(depth > 65535)
 			{
