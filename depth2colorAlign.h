@@ -6,7 +6,8 @@
 #include <vector>
 #include <string>
 
-void depth2colorAlign(const cv::Mat &im_color, const cv::Mat &im_depth, cv::Mat &im_registrated_depth);
+void depth2colorAlign(const cv::Mat &im_color, const cv::Mat &im_depth, const cv::Mat Transform, 
+	const cv::Mat K_color, const cv::Mat K_depth, cv::Mat &im_registrated_depth);
 
 void registration(const cv::Mat &im_color, const cv::Mat &pointclouds, 
 	const cv::Mat &Transform, const cv::Mat &K, cv::Mat &im_registrated_depth);

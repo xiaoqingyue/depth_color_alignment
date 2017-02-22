@@ -1,23 +1,14 @@
 #include "depth2colorAlign.h"
 
-void depth2colorAlign(const cv::Mat &im_color, const cv::Mat &im_depth, cv::Mat &im_registrated_depth)
+/**
+/* @brief align depth image to color image
+/* @param Transform - Transform depth camera coordinate points to color camera coordinate points
+/* @param K_color - intrinic parameter of color camera
+/* @version Shon Xiao, 2017/2/22
+*/
+void depth2colorAlign(const cv::Mat &im_color, const cv::Mat &im_depth, const cv::Mat Transform, 
+	const cv::Mat K_color, const cv::Mat K_depth, cv::Mat &im_registrated_depth)
 {
-	cv::Mat Transform = (cv::Mat_<double>(4, 4)
-		<< 1, 0, 0, -0.00683648,
-		   0, 1, 0, 0.000771234,
-		   0, 0, 1, 0.000460127,
-		   0, 0, 0, 1);
-
-	cv::Mat K_color = (cv::Mat_<double>(3, 3)
-		<< 741.029, 0, 307.898,
-		   0, 741.029, 236.921,
-		   0, 0, 1);
-
-	cv::Mat K_depth = (cv::Mat_<double>(3, 3)
-		<< 584.615, 0, 303.407,
-		   0, 584.615, 227.556,
-		   0, 0, 1);
-
 	cv::Mat pointclouds;
 
 	depthIm2pointclouds(im_depth, K_depth, pointclouds);
