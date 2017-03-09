@@ -1,88 +1,56 @@
 #include "depth2colorAlign.h"
 
-/**
-/* @brief align depth image to color image
-/* @param Transform - Transform depth camera coordinate points to color camera coordinate points
-/* @param K_color - intrinic parameter of color camera
-/* @version Shon Xiao, 2017/2/22
-*/
-void depth2colorAlign(const cv::Mat &im_color, const cv::Mat &im_depth, const cv::Mat Transform, 
-	const cv::Mat K_color, const cv::Mat K_depth, cv::Mat &im_registrated_depth)
+
+Depth2ColorAlign::Depth2ColorAlign(const cv::Size &colorImageSize, const cv::Size &depthImageSize, const cv::Mat &Transform, 
+		const cv::Mat &K_color, const cv::Mat &K_depth): colorSize(colorImageSize)
 {
-	cv::Mat pointclouds;
-
-	depthIm2pointclouds(im_depth, K_depth, pointclouds);
-
-	// std::cout << pointclouds << std::endl;
-
-	registration(im_color, pointclouds, Transform, K_color, im_registrated_depth);
+	cv::Mat uvs;
+	prepare_depth_uvs(depthImageSize.width, depthImageSize.height, uvs);
+	uvs.convertTo(uvs, CV_64FC1);
+	inv_Kd_x_uvs = K_depth.inv() * uvs;
+	Kc_x_RT = K_color * Transform(cv::Rect(0, 0, 4, 3));
 }
 
-/**
-/* @brief covert depth image to pointclouds
-/* @param K - the intrinc parameter K of depth camera
-/* @param pointclouds - 3 x N matrix, each column is on point
-/* @version Shon Xiao, 2017/2/17
-*/
-void depthIm2pointclouds(const cv::Mat &im_depth, const cv::Mat &K, cv::Mat &pointclouds)
+void Depth2ColorAlign::align(const cv::Mat &im_depth, cv::Mat &im_registrated_depth)
 {
-	int width = im_depth.cols;
-	int height = im_depth.rows;
 	cv::Mat im_depth_m;
 	im_depth.convertTo(im_depth_m, CV_64FC1, 0.001); // change the unit from mm to m
-	cv::Mat uvs;
-	prepare_depth_uvs(width, height, uvs);
-	uvs.convertTo(uvs, CV_64FC1);
-	// std::cout << uvs << std::endl;
 	cv::Mat Zc = im_depth_m.reshape(1, 1);
-	// std::cout << Zc << std::endl;
-	cv::Mat tmp = K.inv() * uvs;
-	pointclouds = cv::Mat::zeros(3, tmp.cols, tmp.type());
+
+	cv::Mat pointclouds = cv::Mat::ones(4, inv_Kd_x_uvs.cols, inv_Kd_x_uvs.type());
 	// std::cout << Zc.rows << " " << Zc.cols << std::endl;
 	//Zc.convertTo(Zc, CV_64FC1);
 	for(int i = 0; i < 3; ++i)
 	{
-		cv::Mat tmp_row = tmp.row(i).mul(Zc);
+		cv::Mat tmp_row = inv_Kd_x_uvs.row(i).mul(Zc);
 		tmp_row.copyTo(pointclouds.row(i));
 	}
-}
-
-/**
-/* @brief registriate and get depth of each color pixels
-/* @param Transform - transform the 3d pointclouds to color image coordinate
-/* @param K - the intrinc parameter of color camera
-/* @param pointclouds - 3 x N matrix, each column as one point
-/* @version Shon Xiao, 2017/2/16
-*/
-void registration(const cv::Mat &im_color, const cv::Mat &pointclouds, 
-	const cv::Mat &Transform, const cv::Mat &K, cv::Mat &im_registrated_depth)
-{
-	cv::Mat points3d = pointclouds.clone();
-	cv::Mat onesM = cv::Mat::ones(1, points3d.cols, points3d.type());
-	points3d.push_back(onesM);
-	cv::Mat Pc = Transform(cv::Rect(0, 0, 4, 3)) * points3d;
 	// std::cout << Pc << std::endl;
-	cv::Mat uv_h = K * Pc;
+	cv::Mat uv_h = Kc_x_RT * pointclouds;
 	// std::cout << uv_h << std::endl;
-	cv::Mat uv(2, uv_h.cols, uv_h.type());
 	// convert homogeneous 
 	cv::Mat tmp;
 	divide(uv_h.row(0), uv_h.row(2), tmp);
-	tmp.copyTo(uv.row(0));
+	tmp.copyTo(uv_h.row(0));
 	divide(uv_h.row(1), uv_h.row(2), tmp);
-	tmp.copyTo(uv.row(1));
-	// std::cout << uv.type() << std::endl << uv << std::endl;
-	// std::cout << Pc.type() << " " << Pc.rows << " " << Pc.cols << std::endl;
-	// std::cout << Pc.row(3) << std::endl;
-	im_registrated_depth = cv::Mat::zeros(im_color.rows, im_color.cols, CV_16UC1);
+	tmp.copyTo(uv_h.row(1));
+
+	mapDepth(uv_h, im_registrated_depth);
+}
+
+
+void Depth2ColorAlign::mapDepth(const cv::Mat &uv, cv::Mat &im_registrated_depth)
+{
+	im_registrated_depth = cv::Mat::zeros(colorSize.height, colorSize.width, CV_16UC1);
+	// map the depth
 	for(int i = 0; i < uv.cols; ++i)
 	{
 		int u = uv.at<double>(0, i);
 		int v = uv.at<double>(1, i);
-		if(v >= 0 && v < im_color.rows && u >= 0 && u < im_color.cols)
+		if(v >= 0 && v < colorSize.height && u >= 0 && u < colorSize.width)
 		{
 			// std::cout << u << " " << v << std::endl;
-			int depth = Pc.at<double>(2, i) * 1000.0; // unit mm
+			int depth = uv.at<double>(2, i) * 1000.0; // unit mm
 			// std::cout << i << " " << Pc.at<double>(3, i) << std::endl;
 			if(depth > 65535)
 			{
@@ -98,23 +66,18 @@ void registration(const cv::Mat &im_color, const cv::Mat &pointclouds,
 }
 
 
-void meshgrid(const int width, const int height, cv::Mat &X, cv::Mat &Y)
+
+void Depth2ColorAlign::meshgrid(const int width, const int height, cv::Mat &X, cv::Mat &Y)
 {
-	std::vector<int> vx, vy;
-	for(int i = 0; i < width; ++i)
-	{
-		vx.push_back(i);
-	}
-	for(int i = 0; i < height; ++i)
-	{
-		vy.push_back(i);
-	}
+	std::vector<int> vx(width), vy(height);
+	std::iota(vx.begin(), vx.end(), 0);
+	std::iota(vy.begin(), vy.end(), 0);
 
 	repeat(cv::Mat(vx).t(), height, 1, X);
 	repeat(cv::Mat(vy), 1, width, Y);
 }
 
-void prepare_depth_uvs(const int width, const int height, cv::Mat &uvs)
+void Depth2ColorAlign::prepare_depth_uvs(const int width, const int height, cv::Mat &uvs)
 {
 	cv::Mat X, Y;
 	meshgrid(width, height, X, Y);
