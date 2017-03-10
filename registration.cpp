@@ -13,11 +13,11 @@ int main(int argc, char* argv[])
 	im_color.convertTo(im_color, CV_16UC3);
 	im_color = im_color * 255;
 
-	// cv::namedWindow("color", CV_WINDOW_NORMAL);
-	// imshow("color", im_color);
-	// cv::namedWindow("depth", CV_WINDOW_NORMAL);
-	// imshow("depth", 4 * im_depth);
-	// cv::waitKey();
+	cv::namedWindow("color", CV_WINDOW_NORMAL);
+	imshow("color", im_color);
+	cv::namedWindow("depth", CV_WINDOW_NORMAL);
+	imshow("depth", 4 * im_depth);
+	cv::waitKey();
 
 	cv::Mat im_registrated_depth;
 
@@ -37,16 +37,21 @@ int main(int argc, char* argv[])
 		   0, 584.615, 227.556,
 		   0, 0, 1);
 
-	const clock_t begin_time = clock();
+
 
 	cv::Size color_size(im_color.cols, im_color.rows);
 	cv::Size depth_size(im_depth.cols, im_depth.rows);
 
 	Depth2ColorAlign app(color_size, depth_size, Transform, K_color, K_depth);
 
-	app.align(im_depth, im_registrated_depth);
+	while(1)
+	{
+		const clock_t begin_time = clock();
+		app.align(im_depth, im_registrated_depth);
+		std::cout << float(clock() - begin_time) / CLOCKS_PER_SEC * 1000.0 << "ms" << std::endl;
+		cv::waitKey();
+	}
 
-	std::cout << float(clock() - begin_time) / CLOCKS_PER_SEC * 1000.0 << "ms" << std::endl;
 	// std::cout << im_registrated_depth << std::endl;
 
 	cv::namedWindow("registrated depth", CV_WINDOW_NORMAL);
