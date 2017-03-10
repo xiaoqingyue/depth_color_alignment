@@ -43,14 +43,19 @@ void Depth2ColorAlign::mapDepth(const cv::Mat &uv, cv::Mat &im_registrated_depth
 {
 	im_registrated_depth = cv::Mat::zeros(colorSize.height, colorSize.width, CV_16UC1);
 	// map the depth
+	const double *pu = uv.ptr<double> (0);
+	const double *pv = uv.ptr<double> (1);
+	const double *pdepth = uv.ptr<double> (2);
 	for(int i = 0; i < uv.cols; ++i)
 	{
-		int u = uv.at<double>(0, i);
-		int v = uv.at<double>(1, i);
+
+		// int u = uv.at<double>(0, i);
+		int u = *pu++;
+		int v = *pv++;
 		if(v >= 0 && v < colorSize.height && u >= 0 && u < colorSize.width)
 		{
 			// std::cout << u << " " << v << std::endl;
-			int depth = uv.at<double>(2, i) * 1000.0; // unit mm
+			unsigned short depth = *pdepth++ * 1000.0; // unit mm
 			// std::cout << i << " " << Pc.at<double>(3, i) << std::endl;
 			if(depth > 65535)
 			{
@@ -64,7 +69,6 @@ void Depth2ColorAlign::mapDepth(const cv::Mat &uv, cv::Mat &im_registrated_depth
 		}
 	}
 }
-
 
 
 void Depth2ColorAlign::meshgrid(const int width, const int height, cv::Mat &X, cv::Mat &Y)
