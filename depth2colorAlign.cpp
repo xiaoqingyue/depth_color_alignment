@@ -52,10 +52,11 @@ void Depth2ColorAlign::mapDepth(const cv::Mat &uv, cv::Mat &im_registrated_depth
 		// int u = uv.at<double>(0, i);
 		int u = *pu++;
 		int v = *pv++;
+
 		if(v >= 0 && v < colorSize.height && u >= 0 && u < colorSize.width)
 		{
 			// std::cout << u << " " << v << std::endl;
-			int depth = *pdepth++ * 1000.0; // unit mm
+			int depth = *pdepth * 1000.0; // unit mm
 			// std::cout << i << " " << Pc.at<double>(3, i) << std::endl;
 			if(depth > 65535)
 			{
@@ -67,6 +68,7 @@ void Depth2ColorAlign::mapDepth(const cv::Mat &uv, cv::Mat &im_registrated_depth
 			}
 			im_registrated_depth.at<unsigned short>(v, u) = depth;
 		}
+		pdepth++;
 	}
 }
 
