@@ -7,8 +7,8 @@
 
 int main(int argc, char* argv[])
 {
-	cv::Mat im_color = cv::imread("../images/rgb_3.png", CV_LOAD_IMAGE_COLOR);
-	cv::Mat im_depth = cv::imread("../images/depth_3.png", CV_LOAD_IMAGE_ANYDEPTH);
+	cv::Mat im_color = cv::imread("../rgbd/rgb_3.png", CV_LOAD_IMAGE_COLOR);
+	cv::Mat im_depth = cv::imread("../rgbd/depth_3.png", CV_LOAD_IMAGE_ANYDEPTH);
 
 	im_color.convertTo(im_color, CV_16UC3);
 	im_color = im_color * 255;
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 
 	Depth2ColorAlign app(color_size, depth_size, Transform, K_color, K_depth);
 
-	while(1)
+	//while(1)
 	{
 		const clock_t begin_time = clock();
 		app.align(im_depth, im_registrated_depth);
