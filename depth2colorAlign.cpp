@@ -55,7 +55,7 @@ void Depth2ColorAlign::mapDepth(const cv::Mat &uv, cv::Mat &im_registrated_depth
 		if(v >= 0 && v < colorSize.height && u >= 0 && u < colorSize.width)
 		{
 			// std::cout << u << " " << v << std::endl;
-			unsigned short depth = *pdepth++ * 1000.0; // unit mm
+			int depth = *pdepth++ * 1000.0; // unit mm
 			// std::cout << i << " " << Pc.at<double>(3, i) << std::endl;
 			if(depth > 65535)
 			{
